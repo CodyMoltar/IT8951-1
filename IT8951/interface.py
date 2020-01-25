@@ -22,7 +22,7 @@ class EPD:
          device to device.
     '''
 
-    def __init__(self, vcom=-1.5):
+    def __init__(self, vcom=-1.5, cs=Pins.CS, hrdy=Pins.HRDY, reset=Pins.RESET):
 
         # check that we are root
         self.early_exit = False
@@ -31,17 +31,17 @@ class EPD:
             self.early_exit = True
             exit()
 
-        self.spi = SPI()
+        self.spi = SPI(cs=cs,hrdy=hrdy)
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
-        GPIO.setup(Pins.HRDY, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-        GPIO.setup(Pins.RESET, GPIO.OUT, initial=GPIO.HIGH)
+        GPIO.setup(hrdy, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.setup(reset, GPIO.OUT, initial=GPIO.HIGH)
 
         # reset
-        GPIO.output(Pins.RESET, GPIO.LOW)
+        GPIO.output(reset, GPIO.LOW)
         sleep(0.1)
-        GPIO.output(Pins.RESET, GPIO.HIGH)
+        GPIO.output(reset, GPIO.HIGH)
 
         self.width            = None
         self.height           = None

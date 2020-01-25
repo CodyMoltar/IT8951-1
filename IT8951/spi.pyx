@@ -1,6 +1,8 @@
 # cython: language_level=3
 # cython: profile=True
 
+from . import constants
+from .constants import Pins
 from cpython cimport array
 import array
 
@@ -25,13 +27,9 @@ cdef extern from "bcm2835.h":
      cdef int BCM2835_SPI_MODE0
      cdef int BCM2835_SPI_CLOCK_DIVIDER_32
 
-# pin numbers
-cdef int HRDY = 24
-cdef int CS = 8
-
 class SPI:
 
-    def __init__(self):
+    def __init__(self, cs=Pins.CS, hrdy=Pins.HRDY):
         init_rtn = bcm2835_init()
         if init_rtn != 1:
             raise RuntimeError("Error in bcm2835_init")
@@ -41,8 +39,11 @@ class SPI:
         bcm2835_spi_setDataMode(BCM2835_SPI_MODE0)
         bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_32)
 
-        bcm2835_gpio_fsel(CS, BCM2835_GPIO_FSEL_OUTP);
-        bcm2835_gpio_write(CS, HIGH);
+        self.cs = cs
+        self.hrdy = hrdy
+
+        bcm2835_gpio_fsel(self.cs, BCM2835_GPIO_FSEL_OUTP);
+        bcm2835_gpio_write(self.cs, HIGH);
 
 	# TODO: should initialize HRDY here
 
@@ -55,7 +56,7 @@ class SPI:
         Wait for the device's ready pin to be set
         '''
         # TODO: should we sleep just a tiny bit here?
-        while not bcm2835_gpio_lev(HRDY):
+        while not bcm2835_gpio_lev(self.hrdy):
             pass
 
     def read(self, preamble, count):
@@ -72,7 +73,7 @@ class SPI:
 
         self.wait_ready()
 
-        bcm2835_gpio_write(CS, LOW)
+        bcm2835_gpio_write(self.cs, LOW)
 
         bcm2835_spi_transfer(preamble>>8)
         bcm2835_spi_transfer(preamble)
@@ -90,7 +91,7 @@ class SPI:
             crtn[i] = bcm2835_spi_transfer(0x00)<<8
             crtn[i] |= bcm2835_spi_transfer(0x00)
 
-        bcm2835_gpio_write(CS, HIGH)
+        bcm2835_gpio_write(self.cs, HIGH)
 
         return rtn
 
@@ -103,7 +104,7 @@ class SPI:
 
         self.wait_ready()
 
-        bcm2835_gpio_write(CS, LOW)
+        bcm2835_gpio_write(self.cs, LOW)
 
         bcm2835_spi_transfer(preamble>>8)
         bcm2835_spi_transfer(preamble)
@@ -115,7 +116,7 @@ class SPI:
             bcm2835_spi_transfer(buf[i]>>8)
             bcm2835_spi_transfer(buf[i])
 
-        bcm2835_gpio_write(CS,HIGH)
+        bcm2835_gpio_write(self.cs,HIGH)
 
     def write_pixels(self, pixbuf):
         '''
@@ -130,21 +131,21 @@ class SPI:
         # we inline the wait_ready here for speed
         cdef int i
         for i in range(len(cbuf)):
-            while not bcm2835_gpio_lev(HRDY):
+            while not bcm2835_gpio_lev(self.hrdy):
                 pass
 
-            bcm2835_gpio_write(CS, LOW)
+            bcm2835_gpio_write(self.cs, LOW)
 
             bcm2835_spi_transfer(preamble>>8)
             bcm2835_spi_transfer(preamble)
 
-            while not bcm2835_gpio_lev(HRDY):
+            while not bcm2835_gpio_lev(self.hrdy):
                 pass
 
             bcm2835_spi_transfer(cbuf[i] >> 8)
             bcm2835_spi_transfer(cbuf[i])
 
-            bcm2835_gpio_write(CS,HIGH)
+            bcm2835_gpio_write(self.cs,HIGH)
 
     # the following functions are higher-level for writing and reading
     # various types of data to and from the device

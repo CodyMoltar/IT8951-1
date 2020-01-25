@@ -1,4 +1,6 @@
 
+from . import constants
+from .constants import Pins
 import tkinter as tk
 from PIL import Image, ImageChops, ImageTk
 
@@ -168,7 +170,7 @@ class AutoEPDDisplay(AutoDisplay):
     This class initializes the EPD, and uses it to display the updates
     '''
 
-    def __init__(self, epd=None, vcom=-2.06, **kwargs):
+    def __init__(self, epd=None, vcom=-2.06, cs=Pins.CS, reset=Pins.RESET, hrdy=Pins.HRDY, **kwargs):
 
         if epd is None:
             if EPD is None:
@@ -176,7 +178,7 @@ class AutoEPDDisplay(AutoDisplay):
                                    'backend with "pip install ./" or "python setup.py '
                                    'build_ext --inplace"?')
 
-            epd = EPD(vcom=vcom)
+            epd = EPD(vcom=vcom, cs=cs, reset=reset, hrdy=hrdy)
         self.epd = epd
         AutoDisplay.__init__(self, self.epd.width, self.epd.height, **kwargs)
 
